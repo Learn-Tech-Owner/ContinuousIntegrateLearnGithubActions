@@ -1,0 +1,77 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+env: # Variables d'environnement au niveau du workflow
+  MY_GLOBAL_VAR: "Hello from global"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js 22.15.1
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.15.1'
+    - name: Install dependencies
+      run: npm ci
+  test: # tester avec des variables d'environnement
+      needs: build
+      runs-on: ubuntu-latest
+      env: # Variables d'environnement au niveau du job
+        MY_JOB_VAR: "Hello from job"
+      steps:
+        - name: Access variables
+          env: # Variables d'environnement au niveau de l'étape
+            MY_STEP_VAR: "Hello from step"
+          run: |
+            echo "Global variable: $MY_GLOBAL_VAR"
+            echo "Job variable: $MY_JOB_VAR"
+            echo "Step variable: $MY_STEP_VAR"
+  deploy: # Déploiement avec un secret
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display secret (DO NOT DO THIS IN REAL LIFE!)
+        run: |
+          echo "My API Key is: ${{ secrets.MY_API_KEY }}"
+          # En production, vous passeriez le secret à un outil ou un script de manière sécurisée,
+          # par exemple en tant que variable d'environnement pour une commande de déploiement.
+  dev: # Tester sur plusieurs systèmes d'exploitation et versions de Node.js
+    runs-on: ${{ matrix.os }} # Le runner sera défini par la matrice
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest] # Tester sur Ubuntu et Windows
+        node-version: ['16.x', '18.x', '20.x'] # Tester avec différentes versions de Node.js
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: npm ci
+  stage: # Cacher les dépendances Node.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Node.js modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm # Chemin du cache pour npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }} # Clé de cache basée sur l'OS et le lock file
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies
+        run: npm ci # Les dépendances seront installées ou restaurées depuis le cache

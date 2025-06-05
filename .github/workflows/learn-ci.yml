@@ -21,6 +21,7 @@ jobs:
     - name: Install dependencies
       run: npm ci
   test:
+      needs: build
       runs-on: ubuntu-latest
       env: # Variables d'environnement au niveau du job
         MY_JOB_VAR: "Hello from job"
@@ -33,6 +34,7 @@ jobs:
             echo "Job variable: $MY_JOB_VAR"
             echo "Step variable: $MY_STEP_VAR"
   deploy:
+    needs: [build, test]
     runs-on: ubuntu-latest
     steps:
       - name: Display secret (DO NOT DO THIS IN REAL LIFE!)

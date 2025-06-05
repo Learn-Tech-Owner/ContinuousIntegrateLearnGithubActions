@@ -42,3 +42,18 @@ jobs:
           echo "My API Key is: ${{ secrets.MY_API_KEY }}"
           # En production, vous passeriez le secret à un outil ou un script de manière sécurisée,
           # par exemple en tant que variable d'environnement pour une commande de déploiement.
+  dev:
+    runs-on: ${{ matrix.os }} # Le runner sera défini par la matrice
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest] # Tester sur Ubuntu et Windows
+        node-version: ['16.x', '18.x', '20.x'] # Tester avec différentes versions de Node.js
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: npm ci

@@ -20,7 +20,7 @@ jobs:
         node-version: '22.15.1'
     - name: Install dependencies
       run: npm ci
-  test:
+  test: # tester avec des variables d'environnement
       needs: build
       runs-on: ubuntu-latest
       env: # Variables d'environnement au niveau du job
@@ -33,7 +33,7 @@ jobs:
             echo "Global variable: $MY_GLOBAL_VAR"
             echo "Job variable: $MY_JOB_VAR"
             echo "Step variable: $MY_STEP_VAR"
-  deploy:
+  deploy: # Déploiement avec un secret
     needs: [build, test]
     runs-on: ubuntu-latest
     steps:
@@ -42,13 +42,12 @@ jobs:
           echo "My API Key is: ${{ secrets.MY_API_KEY }}"
           # En production, vous passeriez le secret à un outil ou un script de manière sécurisée,
           # par exemple en tant que variable d'environnement pour une commande de déploiement.
-  dev:
+  dev: # Tester sur plusieurs systèmes d'exploitation et versions de Node.js
     runs-on: ${{ matrix.os }} # Le runner sera défini par la matrice
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest] # Tester sur Ubuntu et Windows
         node-version: ['16.x', '18.x', '20.x'] # Tester avec différentes versions de Node.js
-
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
@@ -57,3 +56,22 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
         run: npm ci
+  stage: # Cacher les dépendances Node.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Node.js modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm # Chemin du cache pour npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }} # Clé de cache basée sur l'OS et le lock file
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies
+        run: npm ci # Les dépendances seront installées ou restaurées depuis le cache
